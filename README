@@ -2,12 +2,15 @@ Resources:
 
 - Get Python command line arguments: https://docs.python.org/3/library/sys.html#sys.argv
 - Run command with subprocess: https://docs.python.org/3/library/subprocess.html#subprocess.run
+- Python argparse: https://docs.python.org/3/library/argparse.html
 -
 
 Challenges:
 
 - How to separate custom command line args from standard args out of order?
 Loop through all cmd line args and create array containing standard args before running.
+
+- Better parsing alternative found: Python argparse to get command line args
 
 - How to get information of a command process when it is running?
 Use CompletedProcess object returned from subprocess.run()

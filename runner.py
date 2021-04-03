@@ -47,7 +47,7 @@ def setup_runner(args):
 
     # Setup dict of data values
     for i in range(5):
-        measured_values[i] = queue.Queue()
+        measured_values.append(queue.Queue)
 
     for i in range(args.c):
         processes = []
@@ -59,6 +59,16 @@ def setup_runner(args):
 
         for process in processes:
             process.join()
+
+# Runs command
+def run_command(args, queue):
+    if args.call_trace:
+        command = "strace -c {}".format(args.COMMAND)
+    else:
+        command = args.COMMAND
+
+    completed_process = subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    queue.put(completed_process)
 
 # Main function
 if __name__ == "__main__":

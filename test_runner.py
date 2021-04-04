@@ -2,6 +2,7 @@ import subprocess
 
 import runner
 
+
 def test_should_run_command_n_times_successfully():
     runner.exit_codes = []
     parser = runner.create_parser()

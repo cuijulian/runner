@@ -3,7 +3,12 @@ Resources:
 - Get Python command line arguments: https://docs.python.org/3/library/sys.html#sys.argv
 - Run command with subprocess: https://docs.python.org/3/library/subprocess.html#subprocess.run
 - Python argparse: https://docs.python.org/3/library/argparse.html
--
+- psutil for process and system usage stats: https://psutil.readthedocs.io/en/latest/
+- Python write to file: https://docs.python.org/3/tutorial/inputoutput.html
+- strace: https://man7.org/linux/man-pages/man1/strace.1.html
+- Signal handling: https://docs.python.org/3/library/signal.html
+- Pytest: https://docs.pytest.org/en/stable/
+- Build Docker image: https://docs.docker.com/language/python/build-images/
 
 Challenges:
 
@@ -15,4 +20,9 @@ Loop through all cmd line args and create array containing standard args before 
 - How to get information of a command process when it is running?
 Use CompletedProcess object returned from subprocess.run()
 
--
+- How to get complete system usage stats? Use the psutil library.
+
+- psutil doesn't keep track of system calls. Get the data from strace instead.
+
+- What happens when user uses Ctrl-C or terminates command before finishing?
+Using signal handling and output required stats before exit.

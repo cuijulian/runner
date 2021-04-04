@@ -2,6 +2,7 @@ import argparse
 import subprocess
 import multiprocessing
 import queue
+import psutil
 
 # Specifies the accepted command line args for the script
 def create_parser():
@@ -47,12 +48,12 @@ def setup_runner(args):
 
     # Setup dict of data values
     for i in range(5):
-        measured_values.append(queue.Queue)
+        measured_values.append(queue.Queue())
 
     for i in range(args.c):
         processes = []
-        for i in range(5):
-            processes.append(multiprocessing.Process(target=functions[i], args=(args, measured_values[i])))
+        for j in range(5):
+            processes.append(multiprocessing.Process(target=functions[j], args=(args, measured_values[j])))
 
         for process in processes:
             process.start()
@@ -69,6 +70,31 @@ def run_command(args, queue):
 
     completed_process = subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     queue.put(completed_process)
+
+
+# Gets disk IO data
+def get_disk_io(args, queue):
+    disk_io_data = psutil.disk_io_counters()
+    queue.put(str(disk_io_data))
+
+
+# Gets memory data
+def get_memory(args, queue):
+    memory_data = psutil.virtual_memory()
+    queue.put(str(memory_data))
+
+
+# Gets cpu usage data
+def get_cpu_usage(args, queue):
+    cpu_usage = psutil.cpu_percent(interval=0.1)
+    queue.put(str(cpu_usage))
+
+
+# Gets network card package counters
+def get_network_counters(args, queue):
+    network_counters = psutil.net_io_counters()
+    queue.put(str(network_counters))
+
 
 # Main function
 if __name__ == "__main__":

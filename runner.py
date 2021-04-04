@@ -37,29 +37,20 @@ def setup_runner(args):
     completed_processes = []
     num_failed_attempts = 0
 
-    # List of functions
-    functions = [
-        run_command,
-        get_disk_io,
-        get_memory,
-        get_cpu_usage,
-        get_network_counters
-    ]
-
-    # Setup dict of data values
+    # Setup list of data value queues
     for i in range(5):
         measured_values.append(queue.Queue())
 
     for i in range(args.c):
-        processes = []
-        for j in range(5):
-            processes.append(multiprocessing.Process(target=functions[j], args=(args, measured_values[j])))
 
-        for process in processes:
-            process.start()
+        run_command(args, measured_values[0])
+        get_disk_io(args, measured_values[1])
+        get_memory(args, measured_values[2])
+        get_cpu_usage(args, measured_values[3])
+        get_network_counters(args, measured_values[4])
 
-        for process in processes:
-            process.join()
+        # Get CompletedProcess from subprocess.run()
+        completed_processes.append(measured_values[0].get())
 
 # Runs command
 def run_command(args, queue):

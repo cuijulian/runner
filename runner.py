@@ -69,10 +69,10 @@ def setup_runner(args):
         # If command failed, create logs
         if exit_codes[-1] != 0:
             if args.sys_trace:
-                create_log('disk_io', num_failed_attempts, measured_values[1].get())
-                create_log('memory', num_failed_attempts, measured_values[2].get())
-                create_log('cpu_usage', num_failed_attempts, measured_values[3].get())
-                create_log('network_counters', num_failed_attempts, measured_values[4].get())
+                create_log('sys_trace_disk_io', num_failed_attempts, measured_values[1].get())
+                create_log('sys_trace_memory', num_failed_attempts, measured_values[2].get())
+                create_log('sys_trace_cpu_usage', num_failed_attempts, measured_values[3].get())
+                create_log('sys_trace_network_counters', num_failed_attempts, measured_values[4].get())
 
             if args.call_trace:
                 create_log('call_trace', num_failed_attempts, stderr_log)
@@ -86,6 +86,8 @@ def setup_runner(args):
             if num_failed_attempts == args.failed_count and args.failed_count > 0:
                 print('The command has reached its maximum failed attempts.')
                 break
+
+    return exit_codes
 
 
 # Runs command

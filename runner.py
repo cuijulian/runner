@@ -2,6 +2,10 @@ import argparse
 import subprocess
 import queue
 import psutil
+import signal
+import sys
+
+import collections
 
 exit_codes = []
 
@@ -48,10 +52,10 @@ def setup_runner(args):
     for i in range(args.c):
 
         run_command(args, measured_values[0])
-        get_disk_io(args, measured_values[1])
-        get_memory(args, measured_values[2])
-        get_cpu_usage(args, measured_values[3])
-        get_network_counters(args, measured_values[4])
+        get_disk_io(measured_values[1])
+        get_memory(measured_values[2])
+        get_cpu_usage(measured_values[3])
+        get_network_counters(measured_values[4])
 
         # Get CompletedProcess from subprocess.run()
         completed_processes.append(measured_values[0].get())
@@ -96,25 +100,25 @@ def run_command(args, queue):
 
 
 # Gets disk IO data
-def get_disk_io(args, queue):
+def get_disk_io(queue):
     disk_io_data = psutil.disk_io_counters()
     queue.put(str(disk_io_data))
 
 
 # Gets memory data
-def get_memory(args, queue):
+def get_memory(queue):
     memory_data = psutil.virtual_memory()
     queue.put(str(memory_data))
 
 
 # Gets cpu usage data
-def get_cpu_usage(args, queue):
+def get_cpu_usage(queue):
     cpu_usage = psutil.cpu_percent(interval=0.1)
     queue.put(str(cpu_usage))
 
 
 # Gets network card package counters
-def get_network_counters(args, queue):
+def get_network_counters(queue):
     network_counters = psutil.net_io_counters()
     queue.put(str(network_counters))
 
@@ -125,9 +129,31 @@ def create_log(file_name, file_number, data):
         f.write(data)
 
 
+# Prints command summary
+def print_summary():
+    global exit_codes
+    exit_code_occurrences = collections.Counter(exit_codes)
+
+    for code, count in exit_code_occurrences.items():
+        print(f'The return code {code} appears {count} times')
+
+    code, count = exit_code_occurrences.most_common(1)[0]
+    print(f'The most common return code is {code}, which appears {count} times')
+
+
+# Handle signals
+def signal_handler(signal, frame):
+    print(f'Program was interrupted by signal number {signal}')
+    print_summary()
+    sys.exit(0)
+
+
 # Main function
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     parser = create_parser()
     args = parser.parse_args()
 
     setup_runner(args)
+    print_summary()

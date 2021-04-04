@@ -78,6 +78,11 @@ def setup_runner(args):
 
             num_failed_attempts += 1
 
+            # Max failed attempts reached
+            if num_failed_attempts == args.failed_count and args.failed_count > 0:
+                print('The command has reached its maximum failed attempts.')
+                break
+
 
 # Runs command
 def run_command(args, queue):

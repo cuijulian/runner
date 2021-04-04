@@ -1,8 +1,10 @@
 import argparse
 import subprocess
-import multiprocessing
 import queue
 import psutil
+
+exit_codes = []
+
 
 # Specifies the accepted command line args for the script
 def create_parser():
@@ -31,10 +33,12 @@ def create_parser():
 
     return parser
 
+
 # Gets return codes and other command data
 def setup_runner(args):
     measured_values = []
     completed_processes = []
+    global exit_codes
     num_failed_attempts = 0
 
     # Setup list of data value queues
@@ -51,6 +55,29 @@ def setup_runner(args):
 
         # Get CompletedProcess from subprocess.run()
         completed_processes.append(measured_values[0].get())
+
+        # Store command exit code
+        exit_codes.append(completed_processes[-1].returncode)
+
+        stdout_log = str(completed_processes[-1].stdout.decode())
+        stderr_log = str(completed_processes[-1].stderr.decode())
+
+        # If command failed, create logs
+        if exit_codes[-1] != 0:
+            if args.sys_trace:
+                create_log('disk_io', num_failed_attempts, measured_values[1].get())
+                create_log('memory', num_failed_attempts, measured_values[2].get())
+                create_log('cpu_usage', num_failed_attempts, measured_values[3].get())
+                create_log('network_counters', num_failed_attempts, measured_values[4].get())
+
+            if args.call_trace:
+                create_log('call_trace', num_failed_attempts, stderr_log)
+
+            if args.log_trace:
+                create_log('log_trace', num_failed_attempts, f'stdout: {stdout_log}\nstderr: {stderr_log}')
+
+            num_failed_attempts += 1
+
 
 # Runs command
 def run_command(args, queue):
@@ -85,6 +112,12 @@ def get_cpu_usage(args, queue):
 def get_network_counters(args, queue):
     network_counters = psutil.net_io_counters()
     queue.put(str(network_counters))
+
+
+# Creates log when command fails
+def create_log(file_name, file_number, data):
+    with open(f'{file_name}{file_number}.log', 'w') as f:
+        f.write(data)
 
 
 # Main function

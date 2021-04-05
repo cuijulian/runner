@@ -1,18 +1,19 @@
-import argparse
-import subprocess
-import queue
-import psutil
-import signal
-import sys
+from argparse import ArgumentParser
+from subprocess import run, PIPE
+from queue import Queue
+from collections import Counter
+from signal import signal, SIGINT, SIGTERM
 
-import collections
+import sys
+import psutil
 
 exit_codes = []
 
 
 # Specifies the accepted command line args for the script
 def create_parser():
-    parser = argparse.ArgumentParser(description='Outputs summary of command execution.')
+    parser = ArgumentParser(
+        description='Outputs summary of command execution.')
 
     parser.add_argument('COMMAND',
                         help='the command to be run')
@@ -21,16 +22,21 @@ def create_parser():
                         help='number of times to run the given command')
 
     parser.add_argument('--failed-count', type=int, default=0,
-                        help='number of allowed failed command invocation attempts before giving up')
+                        help='number of allowed failed command invocation '
+                             'attempts before giving up')
 
     parser.add_argument('--sys-trace', action='store_true',
-                        help='creates a log for: Disk IO, Memory, Processes/CPU Usage, Network Card Package Counters')
+                        help='creates a log for: Disk IO, Memory, '
+                             'Processes/CPU Usage, Network Card Package '
+                             'Counters')
 
     parser.add_argument('--call-trace', action='store_true',
-                        help='for each failed execution, add a log with all the system calls ran by the command')
+                        help='for each failed execution, add a log with all '
+                             'the system calls ran by the command')
 
     parser.add_argument('--log-trace', action='store_true',
-                        help='for each failed execution, add the command output logs')
+                        help='for each failed execution, add the command '
+                             'output logs')
 
     parser.add_argument('--debug', action='store_true',
                         help='show each instruction executed by the script')
@@ -38,7 +44,8 @@ def create_parser():
     return parser
 
 
-# Gets return codes and other command data
+# Runs command and logs return codes and other trace data
+# args: command line arg values parsed using ArgumentParser
 def setup_runner(args):
     measured_values = []
     completed_processes = []
@@ -47,7 +54,7 @@ def setup_runner(args):
 
     # Setup list of data value queues
     for i in range(5):
-        measured_values.append(queue.Queue())
+        measured_values.append(Queue())
 
     for i in range(args.c):
 
@@ -69,16 +76,21 @@ def setup_runner(args):
         # If command failed, create logs
         if exit_codes[-1] != 0:
             if args.sys_trace:
-                create_log('sys_trace_disk_io', num_failed_attempts, measured_values[1].get())
-                create_log('sys_trace_memory', num_failed_attempts, measured_values[2].get())
-                create_log('sys_trace_cpu_usage', num_failed_attempts, measured_values[3].get())
-                create_log('sys_trace_network_counters', num_failed_attempts, measured_values[4].get())
+                create_log('sys_trace_disk_io', num_failed_attempts,
+                           measured_values[1].get())
+                create_log('sys_trace_memory', num_failed_attempts,
+                           measured_values[2].get())
+                create_log('sys_trace_cpu_usage', num_failed_attempts,
+                           measured_values[3].get())
+                create_log('sys_trace_network_counters', num_failed_attempts,
+                           measured_values[4].get())
 
             if args.call_trace:
                 create_log('call_trace', num_failed_attempts, stderr_log)
 
             if args.log_trace:
-                create_log('log_trace', num_failed_attempts, f'stdout: {stdout_log}\nstderr: {stderr_log}')
+                create_log('log_trace', num_failed_attempts,
+                           f'stdout: {stdout_log}\nstderr: {stderr_log}')
 
             num_failed_attempts += 1
 
@@ -91,41 +103,50 @@ def setup_runner(args):
 
 
 # Runs command
+# args: command line arg values parsed using ArgumentParser
+# queue: structure that stores the returned CompletedProcess object
 def run_command(args, queue):
     if args.call_trace:
         command = "strace -c {}".format(args.COMMAND)
     else:
         command = args.COMMAND
 
-    completed_process = subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    completed_process = run(command.split(), stdout=PIPE, stderr=PIPE)
     queue.put(completed_process)
 
 
 # Gets disk IO data
+# queue: structure that stores the disk IO data
 def get_disk_io(queue):
     disk_io_data = psutil.disk_io_counters()
     queue.put(str(disk_io_data))
 
 
 # Gets memory data
+# queue: structure that stores the memory data
 def get_memory(queue):
     memory_data = psutil.virtual_memory()
     queue.put(str(memory_data))
 
 
 # Gets cpu usage data
+# queue: structure that stores cpu usage data
 def get_cpu_usage(queue):
     cpu_usage = psutil.cpu_percent(interval=0.1)
     queue.put(str(cpu_usage))
 
 
 # Gets network card package counters
+# queue: structure that stores network data
 def get_network_counters(queue):
     network_counters = psutil.net_io_counters()
     queue.put(str(network_counters))
 
 
 # Creates log when command fails
+# file_name: name of log file to be created
+# file_number: log file number
+# data: info to be written in the log file
 def create_log(file_name, file_number, data):
     with open(f'{file_name}{file_number}.log', 'w') as f:
         f.write(data)
@@ -134,7 +155,7 @@ def create_log(file_name, file_number, data):
 # Prints command summary
 def print_summary():
     global exit_codes
-    exit_code_occurrences = collections.Counter(exit_codes)
+    exit_code_occurrences = Counter(exit_codes)
 
     for code, count in exit_code_occurrences.items():
         print(f'The return code {code} appears {count} times')
@@ -143,7 +164,9 @@ def print_summary():
     print(f'The most common return code is {code}, which appears {count} times')
 
 
-# Handle signals
+# Handle signal interrupts
+# signal: the received signal
+# frame: stack frame that was interrupted by signal
 def signal_handler(signal, frame):
     print(f'Program was interrupted by signal number {signal}')
     print_summary()
@@ -152,8 +175,8 @@ def signal_handler(signal, frame):
 
 # Main function
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    signal(SIGINT, signal_handler)
+    signal(SIGTERM, signal_handler)
     parser = create_parser()
     args = parser.parse_args()
 

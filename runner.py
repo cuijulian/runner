@@ -6,6 +6,7 @@ from signal import signal, SIGINT, SIGTERM
 
 import sys
 import psutil
+import pdb
 
 exit_codes = []
 
@@ -179,6 +180,10 @@ if __name__ == "__main__":
     signal(SIGTERM, signal_handler)
     parser = create_parser()
     args = parser.parse_args()
+
+    # Debug mode
+    if args.debug:
+        pdb.set_trace()
 
     setup_runner(args)
     print_summary()
